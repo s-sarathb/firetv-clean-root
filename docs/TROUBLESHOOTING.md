@@ -37,3 +37,13 @@ If you want to bring the device back to its original state (note: this is NOT a 
 ./restore.sh <FIRE_TV_IP>
 ```
 This re-enables `com.amazon.tv.launcher`, restores Amazon's OOBE/HomeStarter services, and points the Home intent back to Amazon's stock home screen.
+
+## 5. Fire OS Settings Intent Routing (CTSDummySettingsHandler)
+On standard Android TV, invoking `android.settings.SETTINGS` opens the main settings application. On Amazon Fire OS, Amazon binds `android.settings.SETTINGS` to `com.amazon.tv.settings.v2.compliance.CTSDummySettingsHandler` (a dummy CTS compliance stub that executes `finish()` immediately upon launch).
+
+In our compiled CleanYourTV build (`launcher/cleanyourtv-release.apk`), `Config.systemIntent()` intercepts standard settings actions and maps them directly to Fire TV's native settings activities:
+- **Device & System Settings:** `com.amazon.tv.settings.v2/.tv.device.DeviceActivity`
+- **Network / Wi-Fi:** `com.amazon.tv.settings.v2/.tv.network.NetworkActivity`
+- **Display & Audio:** `com.amazon.tv.settings.v2/.tv.display_sounds.DisplayAndSoundsActivity`
+- **Application Management:** `com.amazon.tv.settings.v2/.tv.applications.ApplicationsActivity`
+
