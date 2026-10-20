@@ -8,6 +8,9 @@ Before you start, on the TV: Settings > My Fire TV > About > highlight your devi
 
 ---
 
+### Copy this prompt into your assistant:
+
+```markdown
 I want to debloat my Amazon Fire TV Stick, permanently disable the ad-filled stock launcher, and replace it with the clean Apple TV-style CleanYourTV launcher with 0 ms Home button latency.
 My Fire TV model or IP is: <IP ADDRESS OR MODEL HERE>. Work on the real device, step by step. Do not guess; verify everything you do over ADB.
 
@@ -53,3 +56,4 @@ OTA Blocking & Hotstar Kiwi DRM
 Verify & Original State Reversibility
 - Send `input keyevent 3` (Home key) and take a screenshot or verify with `dumpsys window` that CleanYourTV is active on screen.
 - Remind me that running `./restore.sh <IP>` will bring the Fire TV back to its original Amazon state at any time without performing a factory reset or losing any app data.
+```
