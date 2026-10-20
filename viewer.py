@@ -238,6 +238,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         mdView.style.display = "block";
         mdView.innerHTML = marked.parse(data.content);
         mdView.querySelectorAll("pre code").forEach(el => hljs.highlightElement(el));
+      } else if (filePath.match(/\.(png|webp|jpg|jpeg|gif)$/i)) {
+        codeView.parentElement.style.display = "none";
+        mdView.style.display = "block";
+        mdView.innerHTML = `<div style="text-align: center; padding: 20px;"><img src="/raw/${filePath}" style="max-width: 100%; max-height: 80vh; border-radius: 8px; border: 1px solid var(--border);" /><p style="color: var(--muted); margin-top: 10px; font-family: monospace;">${filePath}</p></div>`;
+      } else if (filePath.endsWith(".mp4")) {
+        codeView.parentElement.style.display = "none";
+        mdView.style.display = "block";
+        mdView.innerHTML = `<div style="text-align: center; padding: 20px;"><video controls autoplay loop src="/raw/${filePath}" style="max-width: 100%; max-height: 80vh; border-radius: 8px; border: 1px solid var(--border);"></video><p style="color: var(--muted); margin-top: 10px; font-family: monospace;">${filePath}</p></div>`;
       } else {
         mdView.style.display = "none";
         codeView.parentElement.style.display = "block";
@@ -252,7 +260,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       event.target.classList.add("active");
       if (tab === "code") loadFile("README.md");
       else if (tab === "docs") loadFile("docs/ARCHITECTURE.md");
-      else if (tab === "scripts") loadFile("scripts/04_install_launcher.sh");
+      else if (tab === "scripts") loadFile("clean.sh");
       else if (tab === "releases") loadFile("docs/TROUBLESHOOTING.md");
     }
 
@@ -276,11 +284,16 @@ class RepoHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(HTML_TEMPLATE.encode("utf-8"))
         elif self.path == "/api/tree":
             file_list = []
+            EXCLUDED_DIRS = {".git", ".gradle", "build", "gradle", "app", "__pycache__"}
+            EXCLUDED_EXTS = {".java", ".xml", ".class", ".jar", ".idsig", ".properties", ".bat", ".ps1"}
             for root, dirs, files in os.walk(REPO_DIR):
-                if ".git" in root:
-                    continue
+                dirs[:] = [d for d in dirs if d not in EXCLUDED_DIRS and not d.startswith(".")]
                 for f in sorted(files):
+                    if f.startswith(".") or any(f.endswith(ext) for ext in EXCLUDED_EXTS):
+                        continue
                     rel = os.path.relpath(os.path.join(root, f), REPO_DIR)
+                    if rel.startswith("launcher/app") or rel.startswith("launcher/gradle"):
+                        continue
                     file_list.append(rel)
             self.send_response(200)
             self.send_header("Content-type", "application/json")

@@ -10,6 +10,66 @@ This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-m
 
 ---
 
+## Visual Comparison
+
+| Before (Stock Fire OS 7) | After (CleanYourTV Native Handover) |
+| :--- | :--- |
+| Ad-sponsored banners, autoplay trailers, heavy telemetry services, 3.5–4.5 system load average. | Minimalist clean grid, zero ads, telemetry neutralized, privacy-anonymized network indicator. |
+| ![Before: Stock Fire TV](docs/assets/before_stock_firetv.webp) | ![After: Clean Fire TV](docs/assets/after_clean_firetv.png) |
+
+### Live Handover & Settings Demo
+Native 0 ms return to CleanYourTV on Home button press, followed by direct navigation to native Fire TV Device Settings:
+
+![Live Demo](docs/assets/demo.gif)
+
+---
+
+## Launcher Modifications for Fire OS
+
+The included CleanYourTV build (`launcher/cleanyourtv-release.apk`) contains modifications tailored specifically for Fire OS behavior:
+
+1. **Fire OS Settings Intent Routing (`CTSDummySettingsHandler` Bypass):**
+   - **Problem:** Upstream CleanYourTV triggers standard `android.settings.SETTINGS`. On Fire OS, Amazon intercepts this action and routes it to `com.amazon.tv.settings.v2.compliance.CTSDummySettingsHandler` (a compliance stub that executes `finish()` immediately upon launch, causing the Settings button to fail silently).
+   - **Fix:** In [`Config.systemIntent()`](launcher/app/src/main/java/com/gathin/tvhome/Config.java#L295-L330), the launcher checks resolved activity class names, detects `CTSDummy*` stubs, and redirects directly to `com.amazon.tv.settings.v2/.tv.device.DeviceActivity` (and Wi-Fi to `com.amazon.tv.settings.v2/.tv.network.NetworkActivity`).
+2. **SSID Privacy Anonymization:**
+   - The top status pill replaces raw Wi-Fi network SSIDs with `"HOME WIFI"` to prevent leaking private home network names during screen recordings, screenshots, and repository demos.
+
+---
+
+## Compatibility & Amazon Patching Status
+
+### Does this work on the latest Fire TV Stick or has Amazon patched it?
+
+| Platform / Generation | Fire OS Version | Root Vector (GhostLock) | Custom Launcher Handover | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Fire TV Stick Lite / 3rd Gen** (`sheldon` / `sheldonp`) | Fire OS 7.7.1.6 (Android 9) | Vulnerable (CVE-2024-43499) | `cmd package set-home-activity` | **Fully Functional** |
+| **Fire TV Stick 4K 1st Gen** (`mantis`) | Fire OS 6.2.x / 7.x | Vulnerable | `cmd package set-home-activity` | **Fully Functional** |
+| **Fire TV Stick 4K Max 1st Gen** (`kara`) | Fire OS 7.2.x - 7.6.x | Vulnerable | `cmd package set-home-activity` | **Fully Functional** |
+| **Fire TV Stick 4K / Max 2nd Gen** (2023+) | Fire OS 8 (Android 11) | **Patched** (Linux Kernel 5.4/5.10) | Protected package enforcement | **Patched (Requires New Exploit)** |
+| **Future Amazon Hardware** | Vega OS (Linux / React Native) | Not Applicable (No Android runtime) | No Android APK or ADB shell | **Incompatible by Architecture** |
+
+### Detailed Patching Breakdown:
+1. **Kernel Exploit Patching:** GhostLock leverages CVE-2024-43499 in Linux kernels 4.4 and 4.9 (MediaTek MT8695/MT8696 platforms). Fire OS 8 devices run kernel 5.4 or 5.10 with newer memory allocators and ASLR, neutralizing the in-memory race condition.
+2. **Local ADB Port Blocking:** Recent Fire OS 7.6.x+ and Fire OS 8 updates disable loopback ADB connections on `localhost:5555`. This killed userland tools like Launcher Manager and Wolf Launcher that depended on local on-device ADB loops. Remote ADB over Wi-Fi from an external host (the method used in this repo) remains operational when Developer Options are enabled.
+3. **Package Manager Disabling Restrictions:** On Fire OS 8 and recent patched Fire OS 7 builds, Amazon added `com.amazon.tv.launcher` to a protected system package whitelist in `PackageManagerService`. Running `pm disable-user` without root throws `java.lang.SecurityException: Cannot disable a protected package`.
+4. **Framework API Persistence:** On any Fire OS device where root (`uid=0`) is established (via GhostLock or hardware bootloader exploits), Android's native `cmd package set-home-activity` remains functional because it is part of the core Android ActivityManager architecture.
+5. **Vega OS Migration:** Amazon is actively phasing out Android/Fire OS on future smart displays and streaming devices in favor of "Vega OS" (a proprietary Linux OS with React Native applications), which eliminates APK installation and ADB debugging altogether.
+
+---
+
+## Boot Sequence & Handover Timing
+
+### Why Hardware HDMI Capture is Required for Cold Boot Recording
+During a cold boot (power cycle or reboot):
+1. **Early Boot Stages:** The Little Kernel (LK) bootloader and early Linux kernel initialize the hardware display pipeline and render the static white Amazon logo before Android userspace starts.
+2. **Display & SurfaceFlinger:** `/system/bin/screenrecord` is an Android userspace binary that connects to `SurfaceFlinger` and `MediaCodec`. It cannot execute before the Android framework initializes.
+3. **Network Connection Latency:** Wi-Fi drivers and `wpa_supplicant` associate with the local access point approximately 25–35 seconds after power-on. Over network ADB, the connection is only established after CleanYourTV has already loaded.
+4. **GhostLock Ephemeral Nature:** GhostLock is an in-memory kernel patch that resets upon a hard power cycle. Persistent boot-level hooks cannot be written to `/system` or `/vendor` due to `dm-verity` block authentication.
+
+For true cold boot recording from the physical HDMI handshake through the bootloader, an external HDMI capture card (USB video capture dongle) connected to the TV output is required. Once the Android framework launches, ActivityManager immediately reads `package-restrictions.xml` (which persists across reboots), detects `com.amazon.tv.launcher` disabled, and launches CleanYourTV with 0 ms handover delay.
+
+---
+
 ## Tested Hardware & Software
 
 - **Primary Test Device:** Amazon Fire TV Stick Lite (2020, `sheldon` / `AFTSS`)

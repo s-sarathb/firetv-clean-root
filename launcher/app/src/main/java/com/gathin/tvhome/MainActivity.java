@@ -954,7 +954,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 flame = info != null ? Math.max(1, Math.min(4, WifiManager.calculateSignalLevel(info.getRssi(), 5))) : 3;
                 if (ssid != null) {
                     ssid = ssid.replace("\"", "").trim();
-                    if (!ssid.isEmpty() && !ssid.contains("unknown") && !ssid.equals("0x")) text = ssid;
+                    if (!ssid.isEmpty() && !ssid.contains("unknown") && !ssid.equals("0x")) text = "HOME WIFI";
                 }
             }
         } catch (Exception ignored) {
