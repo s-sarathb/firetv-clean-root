@@ -10,12 +10,7 @@ This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-m
 
 ---
 
-## Visual Comparison
-
-| Before (Stock Fire OS 7) | After (CleanYourTV Native Handover) |
-| :--- | :--- |
-| Ad-sponsored banners, autoplay trailers, heavy telemetry services, 3.5–4.5 system load average. | Minimalist clean grid, zero ads, telemetry neutralized, privacy-anonymized network indicator. |
-| ![Before: Stock Fire TV](docs/assets/before_stock_firetv.webp) | ![After: Clean Fire TV](docs/assets/after_clean_firetv.png) |
+![Before: stock Fire OS home with sponsored ads. After: the CleanYourTV launcher](docs/stock-vs-new-side.jpg)
 
 ---
 
