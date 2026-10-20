@@ -14,11 +14,12 @@ jobs:
       - name: Package Release Archive
         run: |
           mkdir -p release-pkg
-          cp -r scripts profiles docs README.md LICENSE release-pkg/
+          cp -r clean.sh restore.sh launcher profiles docs README.md LICENSE release-pkg/
           tar -czf firetv-clean-root-${{ github.ref_name }}.tar.gz -C release-pkg .
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             firetv-clean-root-${{ github.ref_name }}.tar.gz
+            launcher/cleanyourtv-release.apk
           generate_release_notes: true

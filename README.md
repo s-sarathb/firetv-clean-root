@@ -17,18 +17,41 @@ This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-m
   - Fire TV Stick Lite / 3rd Gen (2020, `sheldon` / `sheldonp`), Fire OS 7
   - Fire TV Stick 4K 1st Gen (2018, `mantis`), Fire OS 6 / 7
   - Fire TV Stick 4K Max 1st Gen (2021, `kara`), Fire OS 7
-  - Any Fire OS device with kernel vulnerability compatible with [GhostLock](https://github.com/R0rt1z2/GhostLock)
+  - Any Fire OS device compatible with [GhostLock](https://github.com/R0rt1z2/GhostLock)
 
 ---
 
-## What It Does
+## Quick Start (One Command)
 
-1. **Native HOME Binding:** Disables `com.amazon.tv.launcher` via root and sets CleanYourTV with `cmd package set-home-activity --user 0`. The Home button triggers the launcher at the kernel/inputflinger level without accessibility services.
-2. **Telemetry & Ad Debloat:** Disables 35+ Amazon tracking, metrics, crash logging, shopping, and recommendation packages.
-3. **Appstore / Kiwi DRM Patch:** Bypasses Amazon account login enforcement on sideloaded apps (e.g., JioHotstar) by neutralizing Kiwi DRM workflows while preserving MediaTek hardware decoding (`OMX.MTK.*`) and Widevine L1.
-4. **OTA Neutralization:** Disables `com.amazon.device.software.ota` and `com.amazon.tv.forcedotaupdater.v2` to prevent firmware updates from overwriting configuration.
-5. **Private DNS:** Sets system-wide AdGuard DNS (`dns.adguard-dns.com`) on Android 9.
-6. **Safety Whitelist:** Never touches critical device services: Bluetooth remote pairing, on-screen keyboard (`com.amazon.tv.ime`), Settings (`com.amazon.tv.settings.v2`), or user-installed IPTV credentials (`com.onnet.systems.iptv.pioneer`).
+### 1. Enable ADB on Fire TV
+1. On your Fire TV, open `Settings` > `My Fire TV` > `About`.
+2. Highlight your device name and click the select button 7 times to enable Developer Options.
+3. Go back one screen > `Developer Options` > turn on **ADB Debugging**.
+
+### 2. Run Setup
+```bash
+./clean.sh <FIRE_TV_IP>
+```
+*Example: `./clean.sh 192.168.1.50`*
+
+The script executes the complete setup in one pass:
+1. Connects to the Fire TV over ADB.
+2. Initializes the GhostLock root daemon (`/data/local/tmp/gl/ghostlock_root`).
+3. Disables 35+ Amazon telemetry, ad, and recommendation services.
+4. Configures system-wide AdGuard Private DNS (`dns.adguard-dns.com`).
+5. Installs the CleanYourTV native launcher and pre-compiles dex via `dex2oat`.
+6. Disables `com.amazon.tv.launcher` and registers CleanYourTV as default HOME.
+7. Disables Amazon OTA update services.
+8. Neutralizes Hotstar Kiwi DRM account enforcement if Hotstar is detected.
+
+---
+
+## Rollback to Stock
+
+To undo all modifications, restore the stock Amazon launcher, and reset DNS:
+```bash
+./restore.sh <FIRE_TV_IP>
+```
 
 ---
 
@@ -36,24 +59,18 @@ This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-m
 
 ```
 firetv-clean-root/
-├── docs/
-│   ├── ARCHITECTURE.md          # Exploit details, SELinux patching, and Home intent routing
-│   ├── DEBLOAT_LISTS.md         # Full package breakdown: safe vs load-bearing
-│   ├── HOTSTAR_KIWI_PATCH.md    # Smali reverse engineering and Kiwi DRM neutralization
-│   └── TROUBLESHOOTING.md       # Recovery steps, ADB fixes, and rollback
+├── clean.sh                 # Single one-line setup script
+├── restore.sh               # One-line rollback to stock Amazon launcher
 ├── launcher/
 │   └── cleanyourtv-release.apk  # Prebuilt CleanYourTV launcher binary (328 KB)
 ├── profiles/
 │   ├── sheldon_lite_fireos7.txt # Debloat profile for Fire TV Stick Lite (Fire OS 7)
 │   └── mantis_4k_fireos6.txt    # Debloat profile for Fire TV Stick 4K (Fire OS 6)
-├── scripts/
-│   ├── 01_connect_device.sh     # Network discovery and ADB connection
-│   ├── 02_deploy_root.sh        # GhostLock daemon deployment and verification
-│   ├── 03_debloat_firetv.sh     # Root debloat script with safety whitelist
-│   ├── 04_install_launcher.sh   # Launcher installation and native Home activity binding
-│   ├── 05_patch_hotstar.sh      # Automated Kiwi DRM bytecode patcher
-│   ├── 06_block_ota.sh          # Amazon OTA updater blocker
-│   └── restore.sh               # Full rollback script to stock Amazon launcher
+├── docs/
+│   ├── ARCHITECTURE.md          # Exploit details, SELinux patching, and Home intent routing
+│   ├── DEBLOAT_LISTS.md         # Full package breakdown: safe vs load-bearing
+│   ├── HOTSTAR_KIWI_PATCH.md    # Smali reverse engineering and Kiwi DRM neutralization
+│   └── TROUBLESHOOTING.md       # Recovery steps, ADB fixes, and rollback
 ├── CONTRIBUTING.md
 ├── LICENSE
 └── README.md
@@ -61,54 +78,13 @@ firetv-clean-root/
 
 ---
 
-## Instructions
+## Safety Whitelist
 
-### 1. Enable ADB on Fire TV
-1. On your Fire TV, open `Settings` > `My Fire TV` > `About`.
-2. Highlight your device name and click the select button 7 times to enable Developer Options.
-3. Go back one screen > `Developer Options` > turn on **ADB Debugging**.
-
-### 2. Connect over ADB
-```bash
-./scripts/01_connect_device.sh <FIRE_TV_IP>
-```
-
-### 3. Initialize Root Daemon
-Deploy and launch [GhostLock](https://github.com/R0rt1z2/GhostLock):
-```bash
-./scripts/02_deploy_root.sh <FIRE_TV_IP>
-```
-This executes the in-memory exploit, zeroes credential fields to gain `uid=0`, sets SELinux to permissive, and starts the root daemon at `/data/local/tmp/gl/ghostlock_root`.
-
-### 4. Debloat System
-```bash
-./scripts/03_debloat_firetv.sh <FIRE_TV_IP> profiles/sheldon_lite_fireos7.txt
-```
-
-### 5. Install CleanYourTV & Set Native Home
-```bash
-./scripts/04_install_launcher.sh <FIRE_TV_IP>
-```
-
-### 6. Neutralize Hotstar Kiwi DRM (Optional)
-If running Hotstar without an Amazon account login:
-```bash
-./scripts/05_patch_hotstar.sh <FIRE_TV_IP>
-```
-
-### 7. Block Updates
-```bash
-./scripts/06_block_ota.sh <FIRE_TV_IP>
-```
-
----
-
-## Rollback to Stock
-
-To re-enable `com.amazon.tv.launcher`, restore default Amazon home services, and reset DNS:
-```bash
-./scripts/restore.sh <FIRE_TV_IP> profiles/sheldon_lite_fireos7.txt
-```
+The scripts will never touch:
+- Bluetooth remote pairing and input services.
+- On-screen keyboard (`com.amazon.tv.ime`).
+- System settings menu (`com.amazon.tv.settings.v2`).
+- User-installed IPTV credentials (`com.onnet.systems.iptv.pioneer`).
 
 ---
 
