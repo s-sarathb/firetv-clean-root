@@ -2,6 +2,8 @@
 
 Native launcher replacement, system debloat, and Appstore DRM bypass for Amazon Fire TV devices using in-memory root.
 
+[The prompt](PROMPT.md) · [Architecture](docs/ARCHITECTURE.md) · [Debloat list](profiles/sheldon_lite_fireos7.txt) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+
 Unlike Google TV or standard Android TV, Fire OS marks its stock launcher (`com.amazon.tv.launcher`) and telemetry services as protected system packages. Standard `pm disable-user` calls fail with `SecurityException`, and button-remapping apps rely on accessibility key listeners that introduce a 500–1500 ms delay and get killed by Amazon OTA updates.
 
 This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-memory kernel root exploit by R0rt1z2 based on CVE-2024-43499) with direct Android package manager calls to disable the stock launcher completely and bind [CleanYourTV](https://github.com/Gathin23/cleanyourtv) directly to `android.intent.category.HOME`. Hardware Home presses resolve instantly with 0 ms latency.
@@ -44,11 +46,13 @@ The script executes the complete setup in one pass:
 7. Disables Amazon OTA update services.
 8. Neutralizes Hotstar Kiwi DRM account enforcement if Hotstar is detected.
 
+Alternatively, paste [PROMPT.md](PROMPT.md) into Claude Code, Antigravity, or your AI coding assistant to run the process step by step.
+
 ---
 
-## Rollback to Stock
+## Reverting to Original State
 
-To undo all modifications, restore the stock Amazon launcher, and reset DNS:
+To undo all modifications and bring the Fire TV back to its original state (note: this does NOT perform a factory reset; all user data, sideloaded apps, and login credentials remain completely intact):
 ```bash
 ./restore.sh <FIRE_TV_IP>
 ```
@@ -60,7 +64,8 @@ To undo all modifications, restore the stock Amazon launcher, and reset DNS:
 ```
 firetv-clean-root/
 ├── clean.sh                 # Single one-line setup script
-├── restore.sh               # One-line rollback to stock Amazon launcher
+├── restore.sh               # One-line rollback to original Amazon state
+├── PROMPT.md                # Pasteable prompt for AI coding assistants
 ├── launcher/
 │   └── cleanyourtv-release.apk  # Prebuilt CleanYourTV launcher binary (328 KB)
 ├── profiles/

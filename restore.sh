@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# One-line Fire TV stock restoration: re-enables stock Amazon launcher, OOBE, and debloated services.
+# One-line Fire TV original state restoration.
+# Re-enables the stock Amazon launcher, OOBE, and debloated services.
+# NOTE: This does NOT wipe data or factory reset the device. All apps and user logins remain intact.
+#
 # Usage:
 #   ./restore.sh 192.168.1.50
 #   or: TV_HOST=192.168.1.50 ./restore.sh
@@ -19,7 +22,8 @@ case "$TV_HOST" in
 esac
 
 echo "=========================================================="
-echo " Restoring Fire TV to Stock Amazon Environment"
+echo " Restoring Fire TV to Original State"
+echo " (Does NOT factory reset; preserves all app data)"
 echo " Target: $TARGET"
 echo "=========================================================="
 
@@ -52,4 +56,4 @@ echo "[4/4] Resetting Private DNS to opportunistic..."
 $ADB shell "/data/local/tmp/gl/su -c 'settings put global private_dns_mode opportunistic'"
 
 $ADB shell "input keyevent 3"
-echo "Stock Amazon launcher restored."
+echo "Original Amazon launcher and services restored."
