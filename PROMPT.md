@@ -2,6 +2,8 @@
 
 Paste this into Claude Code, Antigravity, Gemini CLI, Cursor, or another coding assistant with shell access on a computer that is on the same Wi-Fi as the Fire TV. Works on Amazon Fire TV Stick Lite (`sheldon`), Fire TV Stick 3rd Gen (`sheldonp`), Fire TV Stick 4K (`mantis`), and 4K Max (`kara`) running Fire OS 7 or Fire OS 6.
 
+Repository: `https://github.com/YOUR_USERNAME/firetv-clean-root` (replace with your actual GitHub repository URL once deployed).
+
 If you cloned this repo, mention that: the assistant can run `clean.sh` directly, inspect `profiles/`, and use `launcher/cleanyourtv-release.apk`.
 
 Before you start, on the TV: Settings > My Fire TV > About > highlight your device name and press the select button 7 times to enable Developer options, then go back > Developer options > turn on **ADB debugging**. Keep the TV on.
@@ -11,7 +13,7 @@ Before you start, on the TV: Settings > My Fire TV > About > highlight your devi
 ### Copy this prompt into your assistant:
 
 ```markdown
-I want to debloat my Amazon Fire TV Stick, permanently disable the ad-filled stock launcher, and replace it with the clean Apple TV-style CleanYourTV launcher with 0 ms Home button latency.
+I want to debloat my Amazon Fire TV Stick, permanently disable the ad-filled stock launcher, and replace it with the clean Apple TV-style CleanYourTV launcher with 0 ms Home button latency using the tools from https://github.com/YOUR_USERNAME/firetv-clean-root.
 My Fire TV model or IP is: <IP ADDRESS OR MODEL HERE>. Work on the real device, step by step. Do not guess; verify everything you do over ADB.
 
 Connect
