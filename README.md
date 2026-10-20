@@ -2,7 +2,7 @@
 
 Native launcher replacement, system debloat, and Appstore DRM bypass for Amazon Fire TV devices using in-memory root.
 
-[The prompt](PROMPT.md) · [Architecture](docs/ARCHITECTURE.md) · [Debloat list](profiles/sheldon_lite_fireos7.txt) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+[The prompt](PROMPT.md) · [Architecture](docs/ARCHITECTURE.md) · [Debloat list](profiles/sheldon_lite_fireos7.txt) · [Hotstar Kiwi patch](docs/HOTSTAR_KIWI_PATCH.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 
 Unlike Google TV or standard Android TV, Fire OS marks its stock launcher (`com.amazon.tv.launcher`) and telemetry services as protected system packages. Standard `pm disable-user` calls fail with `SecurityException`, and button-remapping apps rely on accessibility key listeners that introduce a 500–1500 ms delay and get killed by Amazon OTA updates.
 
@@ -36,8 +36,13 @@ This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-m
 ```
 *Example: `./clean.sh 192.168.1.50`*
 
+Options:
+- `./clean.sh <IP> --launcher-only`: only install CleanYourTV and set default Home.
+- `./clean.sh <IP> --debloat-only`: only debloat telemetry, ads, and set AdGuard DNS.
+- `./clean.sh <IP> --build`: rebuild launcher APK from source using Gradle.
+
 The script executes the complete setup in one pass:
-1. Connects to the Fire TV over ADB.
+1. Connects to the Fire TV over ADB with connection timeout safeguards.
 2. Initializes the GhostLock root daemon (`/data/local/tmp/gl/ghostlock_root`).
 3. Disables 35+ Amazon telemetry, ad, and recommendation services.
 4. Configures system-wide AdGuard Private DNS (`dns.adguard-dns.com`).
@@ -47,6 +52,14 @@ The script executes the complete setup in one pass:
 8. Neutralizes Hotstar Kiwi DRM account enforcement if Hotstar is detected.
 
 Alternatively, paste [PROMPT.md](PROMPT.md) into Claude Code, Antigravity, or your AI coding assistant to run the process step by step.
+
+---
+
+## Warning: Third-Party & Streaming App Integrity
+
+Modifying bytecode in proprietary streaming applications (such as Hotstar) carries the inherent risk of account flagging, session invalidation, or service suspension if backend security attestation detects altered APK signatures. 
+
+While the Kiwi DRM patch solely alters Amazon Appstore account verification hooks without touching streaming decryptors, users should test with secondary or non-critical accounts. See [docs/HOTSTAR_KIWI_PATCH.md](docs/HOTSTAR_KIWI_PATCH.md) for details.
 
 ---
 
@@ -63,7 +76,7 @@ To undo all modifications and bring the Fire TV back to its original state (note
 
 ```
 firetv-clean-root/
-├── clean.sh                 # Single one-line setup script
+├── clean.sh                 # Single one-line setup script with timeout guards
 ├── restore.sh               # One-line rollback to original Amazon state
 ├── PROMPT.md                # Pasteable prompt for AI coding assistants
 ├── launcher/
@@ -74,7 +87,7 @@ firetv-clean-root/
 ├── docs/
 │   ├── ARCHITECTURE.md          # Exploit details, SELinux patching, and Home intent routing
 │   ├── DEBLOAT_LISTS.md         # Full package breakdown: safe vs load-bearing
-│   ├── HOTSTAR_KIWI_PATCH.md    # Smali reverse engineering and Kiwi DRM neutralization
+│   ├── HOTSTAR_KIWI_PATCH.md    # Smali reverse engineering, Kiwi DRM, and account warnings
 │   └── TROUBLESHOOTING.md       # Recovery steps, ADB fixes, and rollback
 ├── CONTRIBUTING.md
 ├── LICENSE

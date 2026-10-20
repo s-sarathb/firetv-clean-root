@@ -49,33 +49,36 @@ echo "=========================================================="
 
 ADB="adb -s $TARGET"
 
-# Execute a shell command as root via GhostLock
+# Execute a shell command as root via GhostLock with 15s timeout
 su_exec() {
-    $ADB shell "/data/local/tmp/gl/su -c '$*'"
+    timeout 15s $ADB shell "/data/local/tmp/gl/su -c '$*'"
 }
 
-# 1. Connect over ADB
+# 1. Connect over ADB with strict timeouts
 check_connection() {
     echo "[1/6] Connecting to device..."
-    adb connect "$TARGET" >/dev/null 2>&1 || true
-    if ! timeout 8s $ADB wait-for-device; then echo "ERROR: Connection timed out. Make sure the TV is turned ON and awake." >&2; exit 1; fi
+    timeout 5s adb connect "$TARGET" >/dev/null 2>&1 || true
+    if ! timeout 8s $ADB wait-for-device; then
+        echo "ERROR: Connection timed out. Make sure the TV is turned ON and awake." >&2
+        exit 1
+    fi
 
-    MODEL=$($ADB shell getprop ro.product.model | tr -d '\r')
-    BOARD=$($ADB shell getprop ro.product.name | tr -d '\r')
-    FIREOS=$($ADB shell getprop ro.build.version.name | tr -d '\r')
+    MODEL=$(timeout 5s $ADB shell getprop ro.product.model | tr -d '\r')
+    BOARD=$(timeout 5s $ADB shell getprop ro.product.name | tr -d '\r')
+    FIREOS=$(timeout 5s $ADB shell getprop ro.build.version.name | tr -d '\r')
     echo "Connected: $MODEL ($BOARD) running $FIREOS"
 }
 
 # 2. Check/Initialize GhostLock Root Daemon
 check_root() {
     echo "[2/6] Checking root access (GhostLock)..."
-    STATUS=$($ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
+    STATUS=$(timeout 5s $ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
     if ! echo "$STATUS" | grep -q "uid=0(root)"; then
         echo "Root daemon not active. Starting /data/local/tmp/gl/ghostlock_root..."
-        $ADB shell "nohup /data/local/tmp/gl/ghostlock_root > /data/local/tmp/gl/daemon.log 2>&1 &"
+        timeout 5s $ADB shell "nohup /data/local/tmp/gl/ghostlock_root > /data/local/tmp/gl/daemon.log 2>&1 &"
         sleep 2
         for i in {1..8}; do
-            STATUS=$($ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
+            STATUS=$(timeout 5s $ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
             if echo "$STATUS" | grep -q "uid=0(root)"; then break; fi
             sleep 1
         done
@@ -134,9 +137,12 @@ install_launcher() {
         fi
     fi
 
-    # Method 1: Push APK to staging area to prevent streaming timeouts
+    # Method 1: Push APK to staging area with timeout
     echo "Pushing $APK to device..."
-    $ADB push "$APK" /data/local/tmp/cleanyourtv.apk >/dev/null
+    if ! timeout 30s $ADB push "$APK" /data/local/tmp/cleanyourtv.apk >/dev/null; then
+        echo "ERROR: File push timed out over Wi-Fi." >&2
+        exit 1
+    fi
 
     # Method 2: Install APK with validation
     echo "Installing launcher package..."
@@ -154,7 +160,7 @@ install_launcher() {
 
     # Method 4: Test launch the activity BEFORE touching stock launcher
     echo "Testing launcher startup (am start -W)..."
-    START_OUT=$($ADB shell "am start -W -n com.gathin.tvhome/.MainActivity" 2>&1 || true)
+    START_OUT=$(timeout 10s $ADB shell "am start -W -n com.gathin.tvhome/.MainActivity" 2>&1 || true)
     echo "$START_OUT"
     if echo "$START_OUT" | grep -qi "Error"; then
         echo "ERROR: CleanYourTV activity failed to start; stock launcher left enabled." >&2
@@ -172,7 +178,7 @@ install_launcher() {
     su_exec "cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity"
 
     # Method 7: Post-handover verification & rollback check
-    HOME_NOW=$($ADB shell "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME" | tail -n 1 | tr -d '\r')
+    HOME_NOW=$(timeout 5s $ADB shell "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME" | tail -n 1 | tr -d '\r')
     case "$HOME_NOW" in
         com.gathin.tvhome/*)
             echo "Home successfully resolved to: $HOME_NOW"
@@ -204,14 +210,15 @@ block_ota() {
 # 6. Check Streaming App Dependencies (Hotstar Kiwi DRM)
 check_streaming_deps() {
     echo "[6/6] Verifying streaming app dependencies..."
-    if $ADB shell "pm path in.startv.hotstar" >/dev/null 2>&1; then
-        echo "Hotstar detected: compiling dex2oat for smooth hardware decoding..."
+    if timeout 5s $ADB shell "pm path in.startv.hotstar" >/dev/null 2>&1; then
+        echo "Hotstar detected. Compiling dex2oat..."
+        echo "Notice: Modifying Hotstar smali bytecode carries potential risk of account suspension if backend integrity checks detect altered signatures. Use at your own risk."
         su_exec "cmd package compile -m speed -f in.startv.hotstar"
     fi
 
     # Trigger Home key to bring launcher to front
-    $ADB shell "am start -n com.gathin.tvhome/.MainActivity >/dev/null 2>&1 || true"
-    $ADB shell "input keyevent 3"
+    timeout 5s $ADB shell "am start -n com.gathin.tvhome/.MainActivity >/dev/null 2>&1 || true"
+    timeout 5s $ADB shell "input keyevent 3"
 }
 
 # Execution Pipeline

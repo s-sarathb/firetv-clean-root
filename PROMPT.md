@@ -14,6 +14,7 @@ My Fire TV model or IP is: <IP ADDRESS OR MODEL HERE>. Work on the real device, 
 Connect
 - Connect to the Fire TV over ADB on port 5555 (`adb connect <IP>:5555`).
 - Query `getprop ro.product.model`, `ro.product.name`, and `ro.build.version.name` to identify the device and Fire OS version.
+- Use explicit timeouts on connection commands (`timeout 8s adb wait-for-device`) so dropped Wi-Fi packets or device sleep do not cause indefinite terminal hangs.
 - If the device is unauthenticated, tell me to accept the "Allow USB debugging?" prompt on the TV screen.
 
 Root Access (GhostLock)
@@ -45,9 +46,9 @@ Launcher
   `cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity`
 - Confirm that `cmd package resolve-activity ... CATEGORY_HOME` resolves directly to `com.gathin.tvhome/.MainActivity`.
 
-OTA Blocking & Appstore DRM
+OTA Blocking & Hotstar Kiwi DRM
 - Disable Amazon OTA updater services (`com.amazon.device.software.ota`, `com.amazon.tv.forcedotaupdater.v2`) so updates cannot revert the launcher settings.
-- If Hotstar (`in.startv.hotstar`) is installed, verify that its Kiwi DRM is neutralized so it plays without requiring an Amazon account login.
+- Notice on Hotstar: Warn me that modifying proprietary streaming app bytecode carries the risk of account suspension if backend security checks detect modified signatures. Ask for confirmation before modifying Hotstar smali bytecode.
 
 Verify & Original State Reversibility
 - Send `input keyevent 3` (Home key) and take a screenshot or verify with `dumpsys window` that CleanYourTV is active on screen.

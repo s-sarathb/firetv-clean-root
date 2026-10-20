@@ -10,6 +10,18 @@ Pressing OK executes `System.exit(0)`, terminating the app.
 
 ---
 
+## Risk Warning: Account Suspension & App Integrity
+
+Modifying application bytecode (smali) carries inherent risks:
+- **Detection Vectors:** Streaming providers regularly deploy client-side telemetry, checksum validation, and Play Integrity / attestation checks. While the Kiwi DRM patch solely alters Amazon Appstore licensing hooks (`com.amazon.android.Kiwi`), backend security routines can potentially detect modified dex files or signature mismatches.
+- **Potential Consequences:** Streaming session termination, playback errors (e.g., error codes 401/403 or "Device not supported"), or permanent account suspension for violating the provider's Terms of Service.
+- **Recommendations:**
+  - Understand the risk before patching.
+  - Test with a secondary or non-critical account.
+  - Do not redistribute patched APKs publicly.
+
+---
+
 ## Technical Analysis of Kiwi DRM
 
 ### 1. The Kiwi Lifecycle
@@ -35,11 +47,7 @@ The Kiwi SDK in Hotstar is located inside `classes14.dex`.
 
 ### Patch 1: Neutralize Launch Workflow (`Kiwi.smali`)
 In `com/amazon/android/Kiwi.smali`:
-```smali
-# Original: returns LicensingWorkflow or standard launch workflow
-.method public static getLaunchWorkflow(...)Lcom/amazon/android/framework/task/workflow/Workflow;
-```
-**Patch:** Force the workflow to return `DrmFreeApplicationLaunchTaskWorkflow` (`com.amazon.android.b`):
+Force the workflow to return `DrmFreeApplicationLaunchTaskWorkflow` (`com.amazon.android.b`):
 ```smali
 .method public static getLaunchWorkflow(Lcom/amazon/android/framework/task/Task;Ljava/lang/String;)Lcom/amazon/android/framework/task/workflow/Workflow;
     .registers 3
@@ -50,10 +58,7 @@ In `com/amazon/android/Kiwi.smali`:
 ```
 
 ### Patch 2: Strip License Enforcement Workflow (`com/amazon/android/c.smali`)
-Remove `LicenseEnforcementTaskWorkflow` (`com.amazon.android.licensing.e`) from the task pipeline:
-```smali
-# Replace instantiation of LicensingWorkflow task with a no-op or empty task
-```
+Remove `LicenseEnforcementTaskWorkflow` (`com.amazon.android.licensing.e`) from the task pipeline.
 
 ### Patch 3: Neutralize Prompt Manager (`PromptManagerImpl.smali`)
 In `com/amazon/android/framework/prompt/PromptManagerImpl.smali`:
@@ -89,7 +94,6 @@ After assembling the patched DEX:
 ---
 
 ## Result
-* Hotstar launches instantly without requiring an Amazon login.
-* Full MediaTek hardware acceleration (`OMX.MTK.VIDEO.DECODER.AVC/HEVC`) is maintained.
-* Widevine L1 hardware DRM and 4K UHD streaming remain completely intact.
-* User profiles and login credentials inside `/data/data/in.startv.hotstar` are fully preserved.
+- Hotstar launches without requiring an Amazon login.
+- MediaTek hardware acceleration (`OMX.MTK.VIDEO.DECODER.AVC/HEVC`) is preserved.
+- Widevine L1 hardware DRM and 4K UHD streaming remain intact.
