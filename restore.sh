@@ -27,14 +27,12 @@ echo " (Does NOT factory reset; preserves all app data)"
 echo " Target: $TARGET"
 echo "=========================================================="
 
-ADB="adb -s $TARGET"
-
 su_exec() {
-    timeout 15s $ADB shell "/data/local/tmp/gl/su -c '$*'"
+    timeout 15s adb -s "$TARGET" shell "/data/local/tmp/gl/su -c '$*'"
 }
 
 timeout 5s adb connect "$TARGET" >/dev/null 2>&1 || true
-if ! timeout 8s $ADB wait-for-device; then
+if ! timeout 8s adb -s "$TARGET" wait-for-device; then
     echo "ERROR: Connection timed out. Make sure the TV is turned ON and awake." >&2
     exit 1
 fi
@@ -45,7 +43,7 @@ su_exec "pm enable --user 0 com.amazon.tv.oobe 2>/dev/null || pm enable com.amaz
 su_exec "pm enable --user 0 com.amazon.firehomestarter 2>/dev/null || pm enable com.amazon.firehomestarter || true"
 
 echo "[2/4] Resetting default HOME to stock launcher..."
-STOCK_ACT=$(timeout 5s $ADB shell "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME com.amazon.tv.launcher" | tail -n 1 | tr -d '\r')
+STOCK_ACT=$(timeout 5s adb -s "$TARGET" shell "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME com.amazon.tv.launcher" | tail -n 1 | tr -d '\r')
 if [ -n "$STOCK_ACT" ]; then
     su_exec "cmd package set-home-activity --user 0 $STOCK_ACT"
 fi
@@ -63,5 +61,5 @@ fi
 echo "[4/4] Resetting Private DNS to opportunistic..."
 su_exec "settings put global private_dns_mode opportunistic"
 
-timeout 5s $ADB shell "input keyevent 3"
+timeout 5s adb -s "$TARGET" shell "input keyevent 3"
 echo "Original Amazon launcher and services restored."
