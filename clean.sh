@@ -1,15 +1,38 @@
 #!/usr/bin/env bash
 # One-line Fire TV cleanup: debloats Fire OS, blocks OTAs, and installs CleanYourTV as native default Home.
+#
 # Usage:
 #   ./clean.sh 192.168.1.50
-#   or: TV_HOST=192.168.1.50 ./clean.sh
+#   ./clean.sh 192.168.1.50 --launcher-only
+#   ./clean.sh 192.168.1.50 --debloat-only
+#   ./clean.sh 192.168.1.50 --build
+#   TV_HOST=192.168.1.50 ./clean.sh
 
 set -euo pipefail
 cd "$(dirname "$0")"
 
-TV_HOST="${1:-${TV_HOST:-}}"
+TV_HOST=""
+MODE="full"
+BUILD_SOURCE=0
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --launcher-only) MODE="launcher"; shift ;;
+        --debloat-only)  MODE="debloat"; shift ;;
+        --build)         BUILD_SOURCE=1; shift ;;
+        --help|-h)
+            echo "Usage: $0 <TV_IP_ADDRESS> [--launcher-only | --debloat-only | --build]"
+            exit 0 ;;
+        *)
+            if [ -z "$TV_HOST" ]; then TV_HOST="$1"; shift;
+            else echo "Unknown argument: $1" >&2; exit 1; fi ;;
+    esac
+done
+
+TV_HOST="${TV_HOST:-${TV_HOST_ENV:-}}"
 if [ -z "$TV_HOST" ]; then
-    echo "Usage: ./clean.sh <TV_IP_ADDRESS>" >&2
+    echo "Usage: ./clean.sh <TV_IP_ADDRESS> [options]" >&2
     echo "Example: ./clean.sh 192.168.1.50" >&2
     exit 1
 fi
@@ -20,106 +43,193 @@ case "$TV_HOST" in
 esac
 
 echo "=========================================================="
-echo " FireTV Clean Root: One-Line Native Setup"
+echo " FireTV Clean Root (Mode: $MODE)"
 echo " Target: $TARGET"
 echo "=========================================================="
 
 ADB="adb -s $TARGET"
 
-# 1. Connect over ADB
-echo "[1/7] Connecting to device..."
-adb connect "$TARGET" >/dev/null 2>&1 || true
-$ADB wait-for-device
+# Execute a shell command as root via GhostLock
+su_exec() {
+    $ADB shell "/data/local/tmp/gl/su -c '$*'"
+}
 
-MODEL=$($ADB shell getprop ro.product.model | tr -d '\r')
-BOARD=$($ADB shell getprop ro.product.name | tr -d '\r')
-FIREOS=$($ADB shell getprop ro.build.version.name | tr -d '\r')
-echo "Connected: $MODEL ($BOARD) running $FIREOS"
+# 1. Connect over ADB
+check_connection() {
+    echo "[1/6] Connecting to device..."
+    adb connect "$TARGET" >/dev/null 2>&1 || true
+    if ! timeout 8s $ADB wait-for-device; then echo "ERROR: Connection timed out. Make sure the TV is turned ON and awake." >&2; exit 1; fi
+
+    MODEL=$($ADB shell getprop ro.product.model | tr -d '\r')
+    BOARD=$($ADB shell getprop ro.product.name | tr -d '\r')
+    FIREOS=$($ADB shell getprop ro.build.version.name | tr -d '\r')
+    echo "Connected: $MODEL ($BOARD) running $FIREOS"
+}
 
 # 2. Check/Initialize GhostLock Root Daemon
-echo "[2/7] Checking root access (GhostLock)..."
-STATUS=$($ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
-if ! echo "$STATUS" | grep -q "uid=0(root)"; then
-    echo "Root daemon not active. Starting /data/local/tmp/gl/ghostlock_root..."
-    $ADB shell "nohup /data/local/tmp/gl/ghostlock_root > /data/local/tmp/gl/daemon.log 2>&1 &"
-    sleep 2
-    for i in {1..8}; do
-        STATUS=$($ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
-        if echo "$STATUS" | grep -q "uid=0(root)"; then break; fi
-        sleep 1
-    done
-fi
+check_root() {
+    echo "[2/6] Checking root access (GhostLock)..."
+    STATUS=$($ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
+    if ! echo "$STATUS" | grep -q "uid=0(root)"; then
+        echo "Root daemon not active. Starting /data/local/tmp/gl/ghostlock_root..."
+        $ADB shell "nohup /data/local/tmp/gl/ghostlock_root > /data/local/tmp/gl/daemon.log 2>&1 &"
+        sleep 2
+        for i in {1..8}; do
+            STATUS=$($ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
+            if echo "$STATUS" | grep -q "uid=0(root)"; then break; fi
+            sleep 1
+        done
+    fi
 
-if ! echo "$STATUS" | grep -q "uid=0(root)"; then
-    echo "ERROR: GhostLock root daemon failed to start on $TARGET." >&2
-    echo "Ensure GhostLock binary is placed in /data/local/tmp/gl/ghostlock_root." >&2
-    exit 1
-fi
-echo "Root verified: $STATUS"
+    if ! echo "$STATUS" | grep -q "uid=0(root)"; then
+        echo "ERROR: GhostLock root daemon failed to start on $TARGET." >&2
+        echo "Ensure GhostLock binary is placed in /data/local/tmp/gl/ghostlock_root." >&2
+        exit 1
+    fi
+    echo "Root verified: $STATUS"
+}
 
 # 3. Debloat Telemetry, Metrics & Ads
-echo "[3/7] Debloating telemetry, analytics, and recommendation services..."
-PROFILE="profiles/sheldon_lite_fireos7.txt"
+debloat_system() {
+    echo "[3/6] Debloating telemetry, analytics, and recommendation services..."
+    PROFILE="profiles/sheldon_lite_fireos7.txt"
 
-# Critical load-bearing packages that must NEVER be touched
-WHITELIST="com.amazon.tv.settings.v2 com.amazon.tv.ime com.onnet.systems.iptv.pioneer"
+    # Critical load-bearing packages that must NEVER be touched
+    WHITELIST="com.amazon.tv.settings.v2 com.amazon.tv.ime com.onnet.systems.iptv.pioneer"
 
-if [ -f "$PROFILE" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-        pkg=$(echo "$line" | sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-        [ -z "$pkg" ] && continue
+    if [ -f "$PROFILE" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            pkg=$(echo "$line" | sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            [ -z "$pkg" ] && continue
 
-        # Safety guard
-        for safe in $WHITELIST; do
-            if [ "$pkg" = "$safe" ]; then continue 2; fi
-        done
+            # Safety guard
+            for safe in $WHITELIST; do
+                if [ "$pkg" = "$safe" ]; then continue 2; fi
+            done
 
-        $ADB shell "/data/local/tmp/gl/su -c 'pm disable-user --user 0 $pkg 2>/dev/null || pm disable $pkg 2>/dev/null || true'"
-    done < "$PROFILE"
-    echo "Debloat profile applied."
+            su_exec "pm disable-user --user 0 $pkg 2>/dev/null || pm disable $pkg 2>/dev/null || true"
+        done < "$PROFILE"
+        echo "Debloat profile applied."
+    fi
+
+    # Set AdGuard Private DNS
+    echo "Setting AdGuard Private DNS (ad and tracker blocking)..."
+    su_exec "settings put global private_dns_specifier dns.adguard-dns.com; settings put global private_dns_mode hostname"
+}
+
+# 4. Custom Launcher Installation & Safe Handover
+install_launcher() {
+    echo "[4/6] Installing CleanYourTV custom launcher..."
+    APK="launcher/cleanyourtv-release.apk"
+
+    # Optional: Build from source if requested or missing
+    if [ "$BUILD_SOURCE" -eq 1 ] || [ ! -f "$APK" ]; then
+        if [ -d "launcher/app" ] && [ -x "launcher/gradlew" ]; then
+            echo "Building CleanYourTV APK from source..."
+            (cd launcher && ./gradlew assembleRelease -q)
+            APK="launcher/app/build/outputs/apk/release/app-release.apk"
+        elif [ ! -f "$APK" ]; then
+            echo "ERROR: Launcher APK not found at $APK and source not available to build." >&2
+            exit 1
+        fi
+    fi
+
+    # Method 1: Push APK to staging area to prevent streaming timeouts
+    echo "Pushing $APK to device..."
+    $ADB push "$APK" /data/local/tmp/cleanyourtv.apk >/dev/null
+
+    # Method 2: Install APK with validation
+    echo "Installing launcher package..."
+    INSTALL_OUT=$(su_exec "pm install -r /data/local/tmp/cleanyourtv.apk; rm -f /data/local/tmp/cleanyourtv.apk")
+    echo "$INSTALL_OUT"
+    if ! echo "$INSTALL_OUT" | grep -q "Success"; then
+        echo "ERROR: Launcher install failed; stock launcher left untouched." >&2
+        exit 1
+    fi
+
+    # Method 3: Grant permissions and compile AOT
+    echo "Granting permissions and optimizing bytecode (dex2oat)..."
+    su_exec "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null || true"
+    su_exec "cmd package compile -m speed -f com.gathin.tvhome"
+
+    # Method 4: Test launch the activity BEFORE touching stock launcher
+    echo "Testing launcher startup (am start -W)..."
+    START_OUT=$($ADB shell "am start -W -n com.gathin.tvhome/.MainActivity" 2>&1 || true)
+    echo "$START_OUT"
+    if echo "$START_OUT" | grep -qi "Error"; then
+        echo "ERROR: CleanYourTV activity failed to start; stock launcher left enabled." >&2
+        exit 1
+    fi
+
+    # Method 5: Disable stock Amazon launcher
+    echo "Disabling stock Amazon launcher and setup wrappers..."
+    su_exec "pm disable-user --user 0 com.amazon.tv.launcher 2>/dev/null || pm disable com.amazon.tv.launcher"
+    su_exec "pm disable-user --user 0 com.amazon.tv.oobe 2>/dev/null || pm disable com.amazon.tv.oobe || true"
+    su_exec "pm disable-user --user 0 com.amazon.firehomestarter 2>/dev/null || pm disable com.amazon.firehomestarter || true"
+
+    # Method 6: Bind default HOME activity
+    echo "Setting CleanYourTV as default Home activity..."
+    su_exec "cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity"
+
+    # Method 7: Post-handover verification & rollback check
+    HOME_NOW=$($ADB shell "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME" | tail -n 1 | tr -d '\r')
+    case "$HOME_NOW" in
+        com.gathin.tvhome/*)
+            echo "Home successfully resolved to: $HOME_NOW"
+            ;;
+        *)
+            echo "WARNING: Home resolved to '$HOME_NOW' instead of CleanYourTV. Rolling back..." >&2
+            su_exec "pm enable --user 0 com.amazon.tv.launcher 2>/dev/null || true"
+            exit 1
+            ;;
+    esac
+
+    # Method 8: Optional key accessibility services
+    if [ "${HOME_KEY_SERVICE:-0}" = 1 ]; then
+        echo "Enabling HomeKeyService for remotes sending KEYCODE_ALL_APPS..."
+        su_exec "settings put secure enabled_accessibility_services com.gathin.tvhome/.HomeKeyService; settings put secure accessibility_enabled 1"
+    fi
+}
+
+# 5. Block Amazon OTA Updates
+block_ota() {
+    echo "[5/6] Neutralizing OTA updaters..."
+    OTA_PKGS="com.amazon.device.software.ota com.amazon.device.software.ota.override com.amazon.tv.forcedotaupdater.v2"
+    for ota in $OTA_PKGS; do
+        su_exec "pm disable-user --user 0 $ota 2>/dev/null || pm disable $ota 2>/dev/null || true"
+        su_exec "pm clear $ota 2>/dev/null || true"
+    done
+}
+
+# 6. Check Streaming App Dependencies (Hotstar Kiwi DRM)
+check_streaming_deps() {
+    echo "[6/6] Verifying streaming app dependencies..."
+    if $ADB shell "pm path in.startv.hotstar" >/dev/null 2>&1; then
+        echo "Hotstar detected: compiling dex2oat for smooth hardware decoding..."
+        su_exec "cmd package compile -m speed -f in.startv.hotstar"
+    fi
+
+    # Trigger Home key to bring launcher to front
+    $ADB shell "am start -n com.gathin.tvhome/.MainActivity >/dev/null 2>&1 || true"
+    $ADB shell "input keyevent 3"
+}
+
+# Execution Pipeline
+check_connection
+check_root
+
+if [ "$MODE" = "full" ] || [ "$MODE" = "debloat" ]; then
+    debloat_system
 fi
 
-# 4. Configure AdGuard Private DNS
-echo "[4/7] Setting AdGuard Private DNS (ad and tracker blocking)..."
-$ADB shell "/data/local/tmp/gl/su -c 'settings put global private_dns_specifier dns.adguard-dns.com; settings put global private_dns_mode hostname'"
-
-# 5. Install CleanYourTV Launcher
-echo "[5/7] Installing CleanYourTV native launcher..."
-APK="launcher/cleanyourtv-release.apk"
-if [ ! -f "$APK" ]; then
-    echo "ERROR: $APK not found!" >&2
-    exit 1
+if [ "$MODE" = "full" ] || [ "$MODE" = "launcher" ]; then
+    install_launcher
 fi
 
-$ADB install -r "$APK"
-$ADB shell "/data/local/tmp/gl/su -c 'pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null || true'"
-$ADB shell "/data/local/tmp/gl/su -c 'cmd package compile -m speed -f com.gathin.tvhome'"
-
-# 6. Disable Stock Launcher & Bind CleanYourTV as Native HOME
-echo "[6/7] Disabling stock Amazon launcher and binding CleanYourTV as HOME..."
-$ADB shell "/data/local/tmp/gl/su -c 'pm disable-user --user 0 com.amazon.tv.launcher 2>/dev/null || pm disable com.amazon.tv.launcher'"
-$ADB shell "/data/local/tmp/gl/su -c 'pm disable-user --user 0 com.amazon.tv.oobe 2>/dev/null || pm disable com.amazon.tv.oobe || true'"
-$ADB shell "/data/local/tmp/gl/su -c 'pm disable-user --user 0 com.amazon.firehomestarter 2>/dev/null || pm disable com.amazon.firehomestarter || true'"
-
-$ADB shell "/data/local/tmp/gl/su -c 'cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity'"
-
-# 7. Block OTA Updates & Check Hotstar Kiwi DRM
-echo "[7/7] Neutralizing OTA updaters and checking streaming dependencies..."
-OTA_PKGS="com.amazon.device.software.ota com.amazon.device.software.ota.override com.amazon.tv.forcedotaupdater.v2"
-for ota in $OTA_PKGS; do
-    $ADB shell "/data/local/tmp/gl/su -c 'pm disable-user --user 0 $ota 2>/dev/null || pm disable $ota 2>/dev/null || true'"
-    $ADB shell "/data/local/tmp/gl/su -c 'pm clear $ota 2>/dev/null || true'"
-done
-
-# Check if Hotstar is installed and pre-compile
-if $ADB shell "pm path in.startv.hotstar" >/dev/null 2>&1; then
-    echo "Hotstar detected: compiling dex2oat for seamless playback..."
-    $ADB shell "/data/local/tmp/gl/su -c 'cmd package compile -m speed -f in.startv.hotstar'"
+if [ "$MODE" = "full" ]; then
+    block_ota
+    check_streaming_deps
 fi
-
-# Bring launcher to front
-$ADB shell "am start -n com.gathin.tvhome/.MainActivity"
-$ADB shell "input keyevent 3"
 
 echo ""
 echo "=========================================================="

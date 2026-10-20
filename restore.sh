@@ -29,7 +29,7 @@ echo "=========================================================="
 
 ADB="adb -s $TARGET"
 adb connect "$TARGET" >/dev/null 2>&1 || true
-$ADB wait-for-device
+if ! timeout 8s $ADB wait-for-device; then echo "ERROR: Connection timed out. Make sure the TV is turned ON and awake." >&2; exit 1; fi
 
 echo "[1/4] Re-enabling stock Amazon launcher..."
 $ADB shell "/data/local/tmp/gl/su -c 'pm enable --user 0 com.amazon.tv.launcher 2>/dev/null || pm enable com.amazon.tv.launcher'"
