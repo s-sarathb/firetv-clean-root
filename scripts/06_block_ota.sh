@@ -19,4 +19,4 @@ for pkg in $OTA_PACKAGES; do
     $ADB shell "/data/local/tmp/gl/su -c 'pm clear $pkg 2>/dev/null || true'"
 done
 
-echo "[✓] OTA updates permanently blocked."
+echo "[OK] OTA updates permanently blocked."

@@ -48,5 +48,5 @@ echo "[*] Starting launcher..."
 $ADB shell "am start -n $ACT"
 $ADB shell "input keyevent 3"
 
-echo "[✓] Verifying resolved HOME activity:"
+echo "[OK] Verifying resolved HOME activity:"
 $ADB shell "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME"

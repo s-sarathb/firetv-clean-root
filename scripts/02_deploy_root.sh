@@ -9,7 +9,7 @@ echo "=== Checking Root Status on ${TV_IP} ==="
 
 STATUS=$($ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
 if echo "$STATUS" | grep -q "uid=0(root)"; then
-    echo "[✓] Root is already active: $STATUS"
+    echo "[OK] Root is already active: $STATUS"
     exit 0
 fi
 
@@ -21,7 +21,7 @@ MAX_RETRIES=10
 for i in $(seq 1 $MAX_RETRIES); do
     STATUS=$($ADB shell "/data/local/tmp/gl/su -c 'id'" 2>&1 || true)
     if echo "$STATUS" | grep -q "uid=0(root)"; then
-        echo "[✓] Root daemon successfully initialized!"
+        echo "[OK] Root daemon successfully initialized!"
         echo "Root Identity: $STATUS"
         echo "SELinux Mode: $($ADB shell getenforce | tr -d '\r')"
         exit 0

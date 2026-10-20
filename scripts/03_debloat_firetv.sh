@@ -40,4 +40,4 @@ done < "$PROFILE"
 echo "=== Applying Private DNS (AdGuard) ==="
 $ADB shell "/data/local/tmp/gl/su -c 'settings put global private_dns_specifier dns.adguard-dns.com; settings put global private_dns_mode hostname'"
 
-echo "[✓] Debloat routine completed successfully."
+echo "[OK] Debloat routine completed successfully."

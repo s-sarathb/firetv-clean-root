@@ -27,4 +27,4 @@ fi
 echo "[*] Resetting Private DNS to opportunistic..."
 $ADB shell "/data/local/tmp/gl/su -c 'settings put global private_dns_mode opportunistic'"
 
-echo "[✓] Device restored to stock state."
+echo "[OK] Device restored to stock state."

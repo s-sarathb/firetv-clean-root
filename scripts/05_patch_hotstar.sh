@@ -32,4 +32,4 @@ $ADB shell "/data/local/tmp/gl/su -c 'cmd package compile -m speed -f in.startv.
 echo "[4/4] Starting Hotstar..."
 $ADB shell "am start -n in.startv.hotstar/.player.PlayerActivity 2>/dev/null || am start -n in.startv.hotstar/com.hotstar.MainActivity"
 
-echo "[✓] Hotstar DRM bypass active. No Amazon account login prompt will appear."
+echo "[OK] Hotstar DRM bypass active. No Amazon account login prompt will appear."
