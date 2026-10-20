@@ -57,19 +57,6 @@ The included CleanYourTV build (`launcher/cleanyourtv-release.apk`) contains mod
 
 ---
 
-## Boot Sequence & Handover Timing
-
-### Why Hardware HDMI Capture is Required for Cold Boot Recording
-During a cold boot (power cycle or reboot):
-1. **Early Boot Stages:** The Little Kernel (LK) bootloader and early Linux kernel initialize the hardware display pipeline and render the static white Amazon logo before Android userspace starts.
-2. **Display & SurfaceFlinger:** `/system/bin/screenrecord` is an Android userspace binary that connects to `SurfaceFlinger` and `MediaCodec`. It cannot execute before the Android framework initializes.
-3. **Network Connection Latency:** Wi-Fi drivers and `wpa_supplicant` associate with the local access point approximately 25–35 seconds after power-on. Over network ADB, the connection is only established after CleanYourTV has already loaded.
-4. **GhostLock Ephemeral Nature:** GhostLock is an in-memory kernel patch that resets upon a hard power cycle. Persistent boot-level hooks cannot be written to `/system` or `/vendor` due to `dm-verity` block authentication.
-
-For true cold boot recording from the physical HDMI handshake through the bootloader, an external HDMI capture card (USB video capture dongle) connected to the TV output is required. Once the Android framework launches, ActivityManager immediately reads `package-restrictions.xml` (which persists across reboots), detects `com.amazon.tv.launcher` disabled, and launches CleanYourTV with 0 ms handover delay.
-
----
-
 ## Tested Hardware & Software
 
 - **Primary Test Device:** Amazon Fire TV Stick Lite (2020, `sheldon` / `AFTSS`)
