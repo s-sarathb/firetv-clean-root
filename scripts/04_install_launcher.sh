@@ -1,25 +1,15 @@
 #!/usr/bin/env bash
-# Installs a clean custom launcher (CleanYourTV or Projectivy) and binds it as native default HOME.
+# Installs CleanYourTV launcher and binds it as native default HOME.
 set -euo pipefail
 
 TV_IP="${1:-${TV_IP:-192.168.1.2:5555}}"
-LAUNCHER_TYPE="${2:-cleanyourtv}" # cleanyourtv or projectivy
 ADB="adb -s ${TV_IP}"
 
-echo "=== Installing Custom Launcher ($LAUNCHER_TYPE) on $TV_IP ==="
+echo "=== Installing CleanYourTV Launcher on $TV_IP ==="
 
-if [ "$LAUNCHER_TYPE" = "cleanyourtv" ]; then
-    APK="launcher/cleanyourtv-release.apk"
-    PKG="com.gathin.tvhome"
-    ACT="com.gathin.tvhome/.MainActivity"
-elif [ "$LAUNCHER_TYPE" = "projectivy" ]; then
-    APK="launcher/ProjectivyLauncher.apk"
-    PKG="com.spocky.projengmenu"
-    ACT="com.spocky.projengmenu/.ui.home.MainActivity"
-else
-    echo "Unknown launcher type: $LAUNCHER_TYPE (choose 'cleanyourtv' or 'projectivy')" >&2
-    exit 1
-fi
+APK="launcher/cleanyourtv-release.apk"
+PKG="com.gathin.tvhome"
+ACT="com.gathin.tvhome/.MainActivity"
 
 if [ -f "$APK" ]; then
     echo "Installing $APK..."

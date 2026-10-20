@@ -2,9 +2,9 @@
 
 Native launcher replacement, system debloat, and Appstore DRM bypass for Amazon Fire TV devices using in-memory root.
 
-Unlike Google TV or standard Android TV, Fire OS marks its stock launcher (`com.amazon.tv.launcher`) and telemetry services as protected system packages. Standard `pm disable-user` calls fail with `SecurityException`, and button-remapping apps (such as Launcher Manager Mini) rely on accessibility key listeners that introduce a 500–1500 ms delay and get killed by Amazon OTA updates.
+Unlike Google TV or standard Android TV, Fire OS marks its stock launcher (`com.amazon.tv.launcher`) and telemetry services as protected system packages. Standard `pm disable-user` calls fail with `SecurityException`, and button-remapping apps rely on accessibility key listeners that introduce a 500–1500 ms delay and get killed by Amazon OTA updates.
 
-This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-memory kernel root exploit by R0rt1z2 based on CVE-2024-43499) with direct Android package manager calls to disable the stock launcher completely and bind [CleanYourTV](https://github.com/Gathin23/cleanyourtv) or Projectivy directly to `android.intent.category.HOME`. Hardware Home presses resolve instantly with 0 ms latency.
+This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-memory kernel root exploit by R0rt1z2 based on CVE-2024-43499) with direct Android package manager calls to disable the stock launcher completely and bind [CleanYourTV](https://github.com/Gathin23/cleanyourtv) directly to `android.intent.category.HOME`. Hardware Home presses resolve instantly with 0 ms latency.
 
 ---
 
@@ -23,7 +23,7 @@ This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-m
 
 ## What It Does
 
-1. **Native HOME Binding:** Disables `com.amazon.tv.launcher` via root and sets the custom launcher with `cmd package set-home-activity --user 0`. The Home button triggers the launcher at the kernel/inputflinger level without accessibility services.
+1. **Native HOME Binding:** Disables `com.amazon.tv.launcher` via root and sets CleanYourTV with `cmd package set-home-activity --user 0`. The Home button triggers the launcher at the kernel/inputflinger level without accessibility services.
 2. **Telemetry & Ad Debloat:** Disables 35+ Amazon tracking, metrics, crash logging, shopping, and recommendation packages.
 3. **Appstore / Kiwi DRM Patch:** Bypasses Amazon account login enforcement on sideloaded apps (e.g., JioHotstar) by neutralizing Kiwi DRM workflows while preserving MediaTek hardware decoding (`OMX.MTK.*`) and Widevine L1.
 4. **OTA Neutralization:** Disables `com.amazon.device.software.ota` and `com.amazon.tv.forcedotaupdater.v2` to prevent firmware updates from overwriting configuration.
@@ -85,14 +85,9 @@ This executes the in-memory exploit, zeroes credential fields to gain `uid=0`, s
 ./scripts/03_debloat_firetv.sh <FIRE_TV_IP> profiles/sheldon_lite_fireos7.txt
 ```
 
-### 5. Install Launcher & Set Native Home
-To install and set CleanYourTV:
+### 5. Install CleanYourTV & Set Native Home
 ```bash
-./scripts/04_install_launcher.sh <FIRE_TV_IP> cleanyourtv
-```
-To install Projectivy Launcher instead:
-```bash
-./scripts/04_install_launcher.sh <FIRE_TV_IP> projectivy
+./scripts/04_install_launcher.sh <FIRE_TV_IP>
 ```
 
 ### 6. Neutralize Hotstar Kiwi DRM (Optional)
@@ -121,7 +116,6 @@ To re-enable `com.amazon.tv.launcher`, restore default Amazon home services, and
 
 - [GhostLock](https://github.com/R0rt1z2/GhostLock) by [R0rt1z2](https://github.com/R0rt1z2) — temporary kernel root exploit targeting MediaTek Fire OS devices.
 - [CleanYourTV](https://github.com/Gathin23/cleanyourtv) by [Gathin23](https://github.com/Gathin23) — minimal native TV launcher and Google TV debloat prompt.
-- [Projectivy Launcher](https://github.com/spocky/miproja1) by [spocky](https://github.com/spocky) — alternative Android TV launcher.
 
 ---
 
