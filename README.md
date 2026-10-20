@@ -17,11 +17,6 @@ This repository pairs [GhostLock](https://github.com/R0rt1z2/GhostLock) (an in-m
 | Ad-sponsored banners, autoplay trailers, heavy telemetry services, 3.5–4.5 system load average. | Minimalist clean grid, zero ads, telemetry neutralized, privacy-anonymized network indicator. |
 | ![Before: Stock Fire TV](docs/assets/before_stock_firetv.webp) | ![After: Clean Fire TV](docs/assets/after_clean_firetv.png) |
 
-### Live Handover & Settings Demo
-Native 0 ms return to CleanYourTV on Home button press, followed by direct navigation to native Fire TV Device Settings:
-
-![Live Demo](docs/assets/demo.gif)
-
 ---
 
 ## Launcher Modifications for Fire OS
