@@ -55,11 +55,12 @@ Alternatively, paste [PROMPT.md](PROMPT.md) into Claude Code, Antigravity, or yo
 
 ---
 
-## Warning: Third-Party & Streaming App Integrity
+## Warning & Note on Third-Party Streaming Apps (Hotstar)
 
-Modifying bytecode in proprietary streaming applications (such as Hotstar) carries the inherent risk of account flagging, session invalidation, or service suspension if backend security attestation detects altered APK signatures. 
+Modifying bytecode in proprietary streaming applications carries the inherent risk of account flagging, session invalidation, or service suspension if backend security attestation detects altered APK signatures. The maintainers of this repository are **NOT responsible for any loss of account access, bans, or damages**.
 
-While the Kiwi DRM patch solely alters Amazon Appstore account verification hooks without touching streaming decryptors, users should test with secondary or non-critical accounts. See [docs/HOTSTAR_KIWI_PATCH.md](docs/HOTSTAR_KIWI_PATCH.md) for details.
+- **Zero-Risk Alternative Path:** If you want a completely risk-free option without modifying any code, **simply log into your Amazon account on the Fire TV Stick**. The Kiwi check only triggers when no Amazon account is present on the device.
+- **Maintainer Usage Note:** The author is actively using this patched Hotstar build on their personal Fire TV Stick at their own risk; to date, no account bans, flags, or integrity blocks have been encountered, and 4K Widevine L1 playback works without issue. See [docs/HOTSTAR_KIWI_PATCH.md](docs/HOTSTAR_KIWI_PATCH.md) for full smali reverse engineering details.
 
 ---
 

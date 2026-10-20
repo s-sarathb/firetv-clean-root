@@ -51,7 +51,7 @@ Launcher
 
 OTA Blocking & Hotstar Kiwi DRM
 - Disable Amazon OTA updater services (`com.amazon.device.software.ota`, `com.amazon.tv.forcedotaupdater.v2`) so updates cannot revert the launcher settings.
-- Notice on Hotstar: Warn me that modifying proprietary streaming app bytecode carries the risk of account suspension if backend security checks detect modified signatures. Ask for confirmation before modifying Hotstar smali bytecode.
+- Notice on Hotstar: If I want a completely zero-risk path without modifying any APKs, I can simply log into my Amazon account on the Fire TV (Kiwi DRM only triggers when no Amazon account is logged in). The maintainer uses the patched Hotstar at their own risk without encountering bans or integrity checks, but note that modifying bytecode in proprietary streaming apps carries risks of account suspension. The author is not responsible for any loss. Ask for confirmation before modifying Hotstar smali bytecode.
 
 Verify & Original State Reversibility
 - Send `input keyevent 3` (Home key) and take a screenshot or verify with `dumpsys window` that CleanYourTV is active on screen.

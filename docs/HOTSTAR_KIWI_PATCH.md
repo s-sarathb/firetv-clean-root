@@ -1,9 +1,16 @@
 # Hotstar Kiwi DRM Reverse Engineering & Patching Guide
 
+> **Risk-Free Alternative:** If you want a completely risk-free path without modifying any application code or bytecode, **simply log into your Amazon account on the Fire TV**. The Kiwi DRM check only triggers when no Amazon account is present; once logged into an Amazon account, Hotstar launches natively without needing any patches.
+
+> **Maintainer Note & Disclaimer:**
+> I personally use this patched Hotstar build on my own Fire TV Stick at my own risk. To date, no bans, account flags, or integrity checks have been raised, and 4K Widevine L1 playback works cleanly. However, modifying application bytecode always carries inherent risks. The author/maintainers of this repository are **NOT responsible for any account suspension, loss of access, or damages**. Proceed at your own discretion.
+
+---
+
 ## Overview
 On Amazon Fire TV devices, Hotstar (and several other streaming apps sourced from the Amazon Appstore) incorporates the proprietary **Amazon Kiwi DRM SDK**. 
 
-If the user deregisters or does not log into an Amazon account, Hotstar fails on startup with a blocking modal dialog:
+If the user does not log into an Amazon account, Hotstar fails on startup with a blocking modal dialog:
 > *"Not Logged In: You must be logged in to run this application. Please log in through the Settings menu."*
 
 Pressing OK executes `System.exit(0)`, terminating the app.
