@@ -142,7 +142,6 @@ The scripts will never touch:
 - Bluetooth remote pairing and input services.
 - On-screen keyboard (`com.amazon.tv.ime`).
 - System settings menu (`com.amazon.tv.settings.v2`).
-- User-installed IPTV credentials (`com.onnet.systems.iptv.pioneer`).
 
 ---
 

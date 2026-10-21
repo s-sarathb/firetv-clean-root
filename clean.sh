@@ -101,7 +101,7 @@ debloat_system() {
     PROFILE="profiles/sheldon_lite_fireos7.txt"
 
     # Critical load-bearing packages that must NEVER be touched
-    WHITELIST="com.amazon.tv.settings.v2 com.amazon.tv.ime com.onnet.systems.iptv.pioneer"
+    WHITELIST="com.amazon.tv.settings.v2 com.amazon.tv.ime"
 
     if [ -f "$PROFILE" ]; then
         while IFS= read -r line || [ -n "$line" ]; do

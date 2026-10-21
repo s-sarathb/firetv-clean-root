@@ -45,5 +45,4 @@
 | `com.amazon.tv.ime` | On-screen Keyboard | Virtual keyboard disappears; cannot enter text |
 | `android` / `com.android.providers.settings` | Android OS Settings | Bootloop / System Server crash |
 | `com.amazon.device.bluetooth` | Bluetooth stack | Remote control loses connection permanently |
-| `com.onnet.systems.iptv.pioneer` | Pioneer IPTV | **Login credentials permanently destroyed** |
 | `in.startv.hotstar` | JioHotstar | Video playback and user account data |

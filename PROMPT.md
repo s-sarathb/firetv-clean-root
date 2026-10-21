@@ -32,7 +32,6 @@ Safety Whitelist (Never Touch)
   - Settings (`com.amazon.tv.settings.v2`)
   - Virtual on-screen keyboard (`com.amazon.tv.ime`)
   - Remote control and Bluetooth pairing services (`com.amazon.device.bluetooth`)
-  - User-installed IPTV streaming apps (specifically `com.onnet.systems.iptv.pioneer` — its credentials must never be cleared or reset).
 
 Debloat
 - Disable Amazon telemetry, analytics, crash managers, and metrics (`com.amazon.client.metrics`, `com.amazon.device.metrics`, `com.amazon.device.logmanager`, `com.amazon.device.crashmanager`, `com.amazon.ceviche`, `com.fireos.usagestats.proxy`).
