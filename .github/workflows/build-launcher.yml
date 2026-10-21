@@ -1,0 +1,29 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify-scripts:
+    name: Lint & Verify Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck validation
+        run: |
+          sudo apt-get install -y shellcheck
+          shellcheck clean.sh restore.sh
+
+  validate-profiles:
+    name: Validate Debloat Profiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check package format
+        run: |
+          for f in profiles/*.txt; do
+            echo "Checking $f..."
+            grep -vE '^(#|$|[a-z0-9_.-]+)' "$f" && exit 1 || true
+          done

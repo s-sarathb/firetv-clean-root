@@ -1,0 +1,13 @@
+# Gradle & Android build artifacts
+.gradle/
+build/
+launcher/.gradle/
+launcher/build/
+launcher/app/build/
+launcher/local.properties
+*.apk.idsig
+
+# System & Editor
+.DS_Store
+*.swp
+*~
